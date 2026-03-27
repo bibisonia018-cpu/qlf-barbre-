@@ -62,7 +62,7 @@ export default function App() {
       };
 
       const message = `
-🆕 <b>New Booking (from APK)</b>
+💈 <b>New Booking - QLF Barber Shop</b>
 
 👤 <b>Customer:</b> ${escapeHTML(bookingData.customerName)}
 📧 <b>Email:</b> ${escapeHTML(bookingData.customerEmail)}
@@ -70,6 +70,8 @@ export default function App() {
 💈 <b>Barber:</b> ${escapeHTML(barberName)}
 📅 <b>Date:</b> ${escapeHTML(bookingData.date)}
 🕒 <b>Time:</b> ${escapeHTML(bookingData.time)}
+
+<i>Sent directly from QLF Barber App</i>
       `;
 
       const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
