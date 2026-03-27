@@ -46,29 +46,51 @@ export default function App() {
   const confirmBooking = async () => {
     setIsSubmitting(true);
     try {
-      const service = SERVICES.find(s => s.id === bookingData.serviceId)?.name;
-      const barber = BARBERS.find(b => b.id === bookingData.barberId)?.name;
+      const serviceName = SERVICES.find(s => s.id === bookingData.serviceId)?.name;
+      const barberName = BARBERS.find(b => b.id === bookingData.barberId)?.name;
       
-      const response = await fetch('/api/book', {
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = process.env.TELEGRAM_CHAT_ID;
+
+      if (!botToken || !chatId) {
+        throw new Error("Telegram configuration missing in the app build.");
+      }
+
+      const escapeHTML = (text: any) => {
+        const str = text ? String(text) : 'N/A';
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      };
+
+      const message = `
+🆕 <b>New Booking (from APK)</b>
+
+👤 <b>Customer:</b> ${escapeHTML(bookingData.customerName)}
+📧 <b>Email:</b> ${escapeHTML(bookingData.customerEmail)}
+✂️ <b>Service:</b> ${escapeHTML(serviceName)}
+💈 <b>Barber:</b> ${escapeHTML(barberName)}
+📅 <b>Date:</b> ${escapeHTML(bookingData.date)}
+🕒 <b>Time:</b> ${escapeHTML(bookingData.time)}
+      `;
+
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...bookingData,
-          service,
-          barber
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML'
         })
       });
-
-      const result = await response.json();
 
       if (response.ok) {
         setBookingStep(4);
       } else {
-        alert(result.error || "Failed to confirm booking. Please try again.");
+        const errorData = await response.json();
+        alert(`Telegram Error: ${errorData.description || "Unknown error"}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Booking error:", error);
-      alert("An error occurred. Please check your connection.");
+      alert(error.message || "An error occurred. Please check your connection.");
     } finally {
       setIsSubmitting(false);
     }
