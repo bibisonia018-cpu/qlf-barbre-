@@ -2,6 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import cors from "cors";
 import bookingHandler from "./api/book.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +12,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.use(cors());
   app.use(express.json());
 
   // Use the same handler for local dev and production

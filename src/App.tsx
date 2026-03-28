@@ -54,7 +54,12 @@ export default function App() {
       const selectedServiceNames = selectedServices.map(s => s.name).join(', ');
       const barberName = BARBERS.find(b => b.id === bookingData.barberId)?.name;
       
-      const response = await fetch('/api/book', {
+      // Use absolute URL for the APK to reach the backend
+      const baseUrl = window.location.hostname === 'localhost' && window.location.port === '3000' 
+        ? '' 
+        : 'https://ais-dev-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+
+      const response = await fetch(`${baseUrl}/api/book`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
