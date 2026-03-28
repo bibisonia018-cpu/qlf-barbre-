@@ -30,8 +30,8 @@ jobs:
 
       - name: Sync Capacitor
         run: |
-          npx cap init "QLF Barber" com.qlfbarber.chezamir --web-dir dist
-          npx cap add android
+          mkdir -p dist
+          npx cap add android || true
           npx cap sync android
 
       - name: Setup Java
