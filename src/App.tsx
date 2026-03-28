@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { GoogleGenAI } from "@google/genai";
 import { 
   Scissors, 
   Clock, 
@@ -33,6 +34,53 @@ export default function App() {
     customerPhone: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatedBg, setGeneratedBg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const generateBackground = async () => {
+      try {
+        // Check if we already have a saved background
+        const savedBg = localStorage.getItem('qlf_barber_bg');
+        if (savedBg) {
+          setGeneratedBg(savedBg);
+          return;
+        }
+
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+        
+        // Using the user's provided image as a reference for the generation
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              {
+                text: "Create a high-resolution, premium barber shop background based on this logo. The logo features a stylized profile of a man with a groomed beard and hair in golden tones. Below him are crossed scissors and a straight razor. The text 'QLF' is in a bold, 3D metallic gold font. The background should be a sophisticated, blurred barber shop interior with dark wood and warm, cinematic lighting. Maintain the exact luxury aesthetic and color palette of gold and black.",
+              },
+            ],
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: "9:16",
+            },
+          },
+        });
+
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+          if (part.inlineData) {
+            const base64Data = `data:image/png;base64,${part.inlineData.data}`;
+            setGeneratedBg(base64Data);
+            // Save to localStorage so it never generates again
+            localStorage.setItem('qlf_barber_bg', base64Data);
+            break;
+          }
+        }
+      } catch (error) {
+        console.error("Error generating background:", error);
+      }
+    };
+
+    generateBackground();
+  }, []);
 
   const handleBookNow = (service?: Service) => {
     if (service) {
@@ -54,33 +102,44 @@ export default function App() {
       const selectedServiceNames = selectedServices.map(s => s.name).join(', ');
       const barberName = BARBERS.find(b => b.id === bookingData.barberId)?.name;
       
-      // Use absolute URL for the APK to reach the backend
-      const isWebPreview = window.location.hostname.includes('run.app');
-      // We use the Shared URL (ais-pre) because it's public and doesn't require Google login
-      const baseUrl = isWebPreview ? '' : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+      const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+      const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
-      const response = await fetch(`${baseUrl}/api/book`, {
+      if (!botToken || !chatId) {
+        throw new Error("Telegram configuration missing");
+      }
+
+      const message = `
+💈 *حجز جديد - QLF BARBER* 💈
+━━━━━━━━━━━━━━━━
+👤 *الزبون:* ${bookingData.customerName}
+📞 *الهاتف:* ${bookingData.customerPhone}
+✂️ *الخدمة:* ${selectedServiceNames}
+🧔 *الحلاق:* ${barberName}
+📅 *التاريخ:* ${bookingData.date}
+⏰ *الوقت:* ${bookingData.time}
+💰 *السعر الإجمالي:* ${totalPrice} DZD
+━━━━━━━━━━━━━━━━
+      `;
+
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          service: selectedServiceNames,
-          barber: barberName,
-          date: bookingData.date,
-          time: bookingData.time,
-          customerName: bookingData.customerName,
-          customerPhone: bookingData.customerPhone,
-          totalPrice: totalPrice
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'Markdown'
         })
       });
 
       if (response.ok) {
         setBookingStep(4);
       } else {
-        const errorData = await response.json().catch(() => ({ error: "Server Error" }));
-        alert(`خطأ في الحجز: ${errorData.error || "حاول مرة أخرى"}`);
+        throw new Error("Failed to send notification");
       }
     } catch (error: any) {
-      alert("تعذر الاتصال بالسيرفر. تأكد من أنك قمت بـ Share للتطبيق في AI Studio واختيار 'Anyone with the link'.");
+      alert("حدث خطأ في إرسال الحجز. يرجى المحاولة مرة أخرى أو الاتصال بنا مباشرة.");
+      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -88,7 +147,17 @@ export default function App() {
 
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-[#d4af37] selection:text-black">
+    <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-[#d4af37] selection:text-black relative overflow-x-hidden">
+      {/* Background Image with Overlay */}
+      <div 
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-50 scale-105 transition-opacity duration-1000"
+        style={{ 
+          backgroundImage: `url('${generatedBg || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80&w=2000'}')`,
+          filter: 'blur(1px)'
+        }}
+      />
+      <div className="fixed inset-0 z-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 pointer-events-none" />
+
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 glass border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -155,14 +224,8 @@ export default function App() {
       </AnimatePresence>
 
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden pt-20">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden pt-20 z-10">
         <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80&w=2000" 
-            alt="Barber Shop" 
-            className="w-full h-full object-cover opacity-40 grayscale"
-            referrerPolicy="no-referrer"
-          />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black" />
         </div>
 
@@ -173,25 +236,25 @@ export default function App() {
             transition={{ duration: 0.8 }}
           >
             <span className="text-[#d4af37] text-sm font-bold tracking-[0.3em] uppercase mb-4 block">ESTABLISHED 2024</span>
-            <h1 className="text-6xl md:text-9xl font-display italic font-bold mb-4 leading-tight">
+            <h1 className="text-6xl md:text-9xl font-display italic font-bold mb-4 leading-tight tracking-tighter">
               QLF BARBER
             </h1>
             <span className="text-2xl md:text-4xl text-[#d4af37] font-display italic mb-8 block">
               chez <a href="https://www.facebook.com/share/1HeectyrMW/" target="_blank" rel="noopener noreferrer" className="hover:underline">amir</a>
             </span>
-            <p className="text-lg md:text-xl text-white/60 mb-12 max-w-2xl mx-auto font-light tracking-wide">
+            <p className="text-lg md:text-xl text-white/60 mb-12 max-w-2xl mx-auto font-light tracking-wide backdrop-blur-sm bg-black/10 py-2 rounded-full">
               Experience the pinnacle of male grooming at QLF Barber. Where tradition meets modern precision.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
                 onClick={() => handleBookNow()}
-                className="px-10 py-5 bg-[#d4af37] text-black font-bold text-lg hover:bg-[#b8962d] transition-all transform hover:scale-105"
+                className="px-10 py-5 bg-[#d4af37] text-black font-bold text-lg hover:bg-[#b8962d] transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(212,175,55,0.2)]"
               >
                 BOOK YOUR APPOINTMENT
               </button>
               <a 
                 href="#services"
-                className="px-10 py-5 border border-white/20 hover:bg-white/10 transition-all text-lg font-bold"
+                className="px-10 py-5 border border-white/20 hover:bg-white/10 transition-all text-lg font-bold backdrop-blur-sm"
               >
                 VIEW SERVICES
               </a>
@@ -205,7 +268,7 @@ export default function App() {
       </section>
 
       {/* Stats/Features */}
-      <section className="py-20 border-y border-white/10 bg-white/[0.02]">
+      <section className="py-20 border-y border-white/10 bg-black/40 backdrop-blur-md z-10 relative">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
           {[
             { label: 'HAPPY CLIENTS', value: '2.5K+' },
@@ -222,21 +285,21 @@ export default function App() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-32 px-6">
+      <section id="services" className="py-32 px-6 relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
             <div>
               <span className="text-[#d4af37] text-sm font-bold tracking-[0.3em] uppercase mb-4 block">OUR MENU</span>
               <h2 className="text-5xl md:text-7xl font-display italic font-bold">PREMIUM SERVICES</h2>
             </div>
-            <p className="max-w-md text-white/50 leading-relaxed">
+            <p className="max-w-md text-white/50 leading-relaxed backdrop-blur-sm bg-black/20 p-4 border-l-2 border-[#d4af37]">
               From classic cuts to modern styling, our master barbers provide a personalized experience for every client.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10 border border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10 border border-white/10 backdrop-blur-sm">
             {SERVICES.map((service) => (
-              <div key={service.id} className="bg-[#0a0a0a] p-10 group hover:bg-white/[0.03] transition-colors flex flex-col h-full">
+              <div key={service.id} className="bg-black/60 p-10 group hover:bg-[#d4af37]/10 transition-all duration-500 flex flex-col h-full border border-transparent hover:border-[#d4af37]/30">
                 <div className="flex justify-between items-start mb-6">
                   <div className="p-3 bg-white/5 rounded-none group-hover:bg-[#d4af37]/20 transition-colors">
                     <Scissors className="w-6 h-6 text-[#d4af37]" />
@@ -261,11 +324,11 @@ export default function App() {
       </section>
 
       {/* Barbers Section */}
-      <section id="barbers" className="py-32 bg-white/[0.02]">
-        <div className="max-w-7xl mx-auto px-6">
+      <section id="barbers" className="py-32 px-6 relative z-10">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
             <span className="text-[#d4af37] text-sm font-bold tracking-[0.3em] uppercase mb-4 block">THE TEAM</span>
-            <h2 className="text-5xl md:text-7xl font-display italic font-bold">MASTER BARBERS</h2>
+            <h2 className="text-5xl md:text-7xl font-display italic font-bold">MASTER CRAFTSMEN</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -275,18 +338,19 @@ export default function App() {
                 whileHover={{ y: -10 }}
                 className="group relative"
               >
-                <div className="aspect-[4/5] overflow-hidden mb-6 grayscale group-hover:grayscale-0 transition-all duration-500">
+                <div className="aspect-[4/5] overflow-hidden mb-6 grayscale group-hover:grayscale-0 transition-all duration-500 relative">
                   <img 
                     src={barber.image} 
                     alt={barber.name} 
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                     referrerPolicy="no-referrer"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <div className="text-center">
+                <div className="text-center backdrop-blur-sm bg-black/20 p-6 border border-transparent group-hover:border-[#d4af37]/20 transition-all">
                   <h3 className="text-2xl font-display font-bold mb-1 italic">{barber.name}</h3>
                   <p className="text-[#d4af37] text-xs font-bold tracking-widest uppercase mb-4">{barber.role}</p>
-                  <p className="text-white/40 text-sm max-w-xs mx-auto">{barber.bio}</p>
+                  <p className="text-white/40 text-sm max-w-xs mx-auto font-light leading-relaxed">{barber.bio}</p>
                 </div>
               </motion.div>
             ))}
@@ -295,7 +359,7 @@ export default function App() {
       </section>
 
       {/* Gallery Section */}
-      <section id="gallery" className="py-32">
+      <section id="gallery" className="py-32 relative z-10">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between mb-16">
             <h2 className="text-5xl font-display italic font-bold">THE GALLERY</h2>
@@ -305,7 +369,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 backdrop-blur-sm bg-black/10 p-4 border border-white/5">
             {[
               'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&q=80&w=800',
               'https://images.unsplash.com/photo-1621605815841-2dddb7a69e3d?auto=format&fit=crop&q=80&w=800',
@@ -316,15 +380,15 @@ export default function App() {
               'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&q=80&w=800',
               'https://images.unsplash.com/photo-1512690199101-8d8eb8899578?auto=format&fit=crop&q=80&w=800'
             ].map((url, i) => (
-              <div key={i} className="aspect-square overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 cursor-pointer relative group">
+              <div key={i} className="aspect-square overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 cursor-pointer relative group border border-white/5">
                 <img 
                   src={url} 
                   alt={`Gallery ${i}`} 
                   className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-[#d4af37]/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Instagram className="w-8 h-8 text-white" />
+                <div className="absolute inset-0 bg-[#d4af37]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                  <Instagram className="w-8 h-8 text-black" />
                 </div>
               </div>
             ))}
@@ -333,64 +397,64 @@ export default function App() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-32 bg-black">
+      <section id="contact" className="py-32 relative z-10">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-20">
           <div>
             <span className="text-[#d4af37] text-sm font-bold tracking-[0.3em] uppercase mb-4 block">VISIT US</span>
             <h2 className="text-5xl md:text-7xl font-display italic font-bold mb-12">GET IN TOUCH</h2>
             
             <div className="space-y-12">
-              <div className="flex gap-6">
-                <div className="w-12 h-12 glass flex items-center justify-center shrink-0">
+              <div className="flex gap-6 group">
+                <div className="w-12 h-12 glass flex items-center justify-center shrink-0 group-hover:bg-[#d4af37]/20 transition-colors">
                   <MapPin className="w-6 h-6 text-[#d4af37]" />
                 </div>
                 <div>
                   <h4 className="text-lg font-bold mb-2 uppercase tracking-widest">Location</h4>
-                  <p className="text-white/40 leading-relaxed">حي 500 مسكن، عمارة 12<br />الجزائر العاصمة</p>
+                  <p className="text-white/40 leading-relaxed backdrop-blur-sm bg-black/10 p-2 inline-block">حي 500 مسكن، عمارة 12<br />الجزائر العاصمة</p>
                 </div>
               </div>
 
-              <div className="flex gap-6">
-                <div className="w-12 h-12 glass flex items-center justify-center shrink-0">
+              <div className="flex gap-6 group">
+                <div className="w-12 h-12 glass flex items-center justify-center shrink-0 group-hover:bg-[#d4af37]/20 transition-colors">
                   <Clock className="w-6 h-6 text-[#d4af37]" />
                 </div>
                 <div>
                   <h4 className="text-lg font-bold mb-2 uppercase tracking-widest">Hours</h4>
-                  <p className="text-white/40 leading-relaxed">Mon - Fri: 9:00 AM - 8:00 PM<br />Sat: 10:00 AM - 6:00 PM<br />Sun: Closed</p>
+                  <p className="text-white/40 leading-relaxed backdrop-blur-sm bg-black/10 p-2 inline-block">Mon - Fri: 9:00 AM - 8:00 PM<br />Sat: 10:00 AM - 6:00 PM<br />Sun: Closed</p>
                 </div>
               </div>
 
-              <div className="flex gap-6">
-                <div className="w-12 h-12 glass flex items-center justify-center shrink-0">
+              <div className="flex gap-6 group">
+                <div className="w-12 h-12 glass flex items-center justify-center shrink-0 group-hover:bg-[#d4af37]/20 transition-colors">
                   <Phone className="w-6 h-6 text-[#d4af37]" />
                 </div>
                 <div>
                   <h4 className="text-lg font-bold mb-2 uppercase tracking-widest">Contact</h4>
-                  <p className="text-white/40 leading-relaxed">+1 (555) 123-4567<br />hello@qlfbarber.com</p>
+                  <p className="text-white/40 leading-relaxed backdrop-blur-sm bg-black/10 p-2 inline-block">+1 (555) 123-4567<br />hello@qlfbarber.com</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="glass p-12 relative overflow-hidden">
+          <div className="glass p-12 relative overflow-hidden backdrop-blur-xl bg-black/40 border-white/10">
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#d4af37]/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
             <h3 className="text-3xl font-display italic font-bold mb-8">SEND A MESSAGE</h3>
             <form className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold tracking-widest text-white/40 uppercase">Full Name</label>
-                  <input type="text" className="w-full bg-white/5 border border-white/10 px-4 py-3 focus:border-[#d4af37] outline-none transition-colors" />
+                  <input type="text" className="w-full bg-white/5 border border-white/10 px-4 py-3 focus:border-[#d4af37] outline-none transition-colors backdrop-blur-sm" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold tracking-widest text-white/40 uppercase">Email Address</label>
-                  <input type="email" className="w-full bg-white/5 border border-white/10 px-4 py-3 focus:border-[#d4af37] outline-none transition-colors" />
+                  <input type="email" className="w-full bg-white/5 border border-white/10 px-4 py-3 focus:border-[#d4af37] outline-none transition-colors backdrop-blur-sm" />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold tracking-widest text-white/40 uppercase">Message</label>
-                <textarea rows={4} className="w-full bg-white/5 border border-white/10 px-4 py-3 focus:border-[#d4af37] outline-none transition-colors resize-none"></textarea>
+                <textarea rows={4} className="w-full bg-white/5 border border-white/10 px-4 py-3 focus:border-[#d4af37] outline-none transition-colors resize-none backdrop-blur-sm"></textarea>
               </div>
-              <button className="w-full py-5 bg-[#d4af37] text-black font-bold uppercase tracking-widest hover:bg-[#b8962d] transition-colors">
+              <button className="w-full py-5 bg-[#d4af37] text-black font-bold uppercase tracking-widest hover:bg-[#b8962d] transition-colors shadow-[0_10px_30px_rgba(212,175,55,0.2)]">
                 SEND MESSAGE
               </button>
             </form>
@@ -399,7 +463,7 @@ export default function App() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-white/10 text-center">
+      <footer className="py-12 border-t border-white/10 text-center relative z-10 backdrop-blur-md bg-black/40">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-center gap-2 mb-6">
             <Scissors className="w-6 h-6 text-[#d4af37]" />
