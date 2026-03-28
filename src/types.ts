@@ -17,10 +17,10 @@ export interface Barber {
 
 export interface Booking {
   id: string;
-  serviceId: string;
+  serviceIds: string[];
   barberId: string;
   date: string;
   time: string;
   customerName: string;
-  customerEmail: string;
+  customerPhone: string;
 }

@@ -21,32 +21,37 @@ import { cn } from './lib/utils';
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
   const [bookingData, setBookingData] = useState({
-    serviceId: '',
+    serviceIds: [] as string[],
     barberId: '',
     date: '',
     time: '',
     customerName: '',
-    customerEmail: ''
+    customerPhone: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleBookNow = (service?: Service) => {
     if (service) {
-      setSelectedService(service);
-      setBookingData(prev => ({ ...prev, serviceId: service.id }));
+      setSelectedServices([service]);
+      setBookingData(prev => ({ ...prev, serviceIds: [service.id] }));
+    } else {
+      setSelectedServices([]);
+      setBookingData(prev => ({ ...prev, serviceIds: [] }));
     }
     setIsBookingOpen(true);
     setBookingStep(1);
   };
 
+  const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
+
   const confirmBooking = async () => {
     setIsSubmitting(true);
     try {
-      const serviceName = SERVICES.find(s => s.id === bookingData.serviceId)?.name;
+      const selectedServiceNames = selectedServices.map(s => s.name).join(', ');
       const barberName = BARBERS.find(b => b.id === bookingData.barberId)?.name;
       
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -62,11 +67,12 @@ export default function App() {
       };
 
       const message = `
-💈 <b>New Booking - QLF Barber Shop</b>
+💈 <b>New Booking - QLF Barber</b>
 
 👤 <b>Customer:</b> ${escapeHTML(bookingData.customerName)}
-📧 <b>Email:</b> ${escapeHTML(bookingData.customerEmail)}
-✂️ <b>Service:</b> ${escapeHTML(serviceName)}
+📞 <b>Phone:</b> ${escapeHTML(bookingData.customerPhone)}
+✂️ <b>Services:</b> ${escapeHTML(selectedServiceNames)}
+💰 <b>Total:</b> ${totalPrice} DZD
 💈 <b>Barber:</b> ${escapeHTML(barberName)}
 📅 <b>Date:</b> ${escapeHTML(bookingData.date)}
 🕒 <b>Time:</b> ${escapeHTML(bookingData.time)}
@@ -106,7 +112,10 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Scissors className="w-8 h-8 text-[#d4af37]" />
-            <span className="text-2xl font-bold tracking-tighter font-display uppercase italic">QLF BARBER</span>
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold tracking-tighter font-display uppercase italic leading-none">QLF BARBER</span>
+              <span className="text-[10px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">chez amir</span>
+            </div>
           </div>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium uppercase tracking-widest">
@@ -180,12 +189,12 @@ export default function App() {
             transition={{ duration: 0.8 }}
           >
             <span className="text-[#d4af37] text-sm font-bold tracking-[0.3em] uppercase mb-4 block">ESTABLISHED 2024</span>
-            <h1 className="text-6xl md:text-9xl font-display italic font-bold mb-8 leading-tight">
-              SHARP CUTS,<br />
-              <span className="text-[#d4af37]">TIMELESS</span> STYLE.
+            <h1 className="text-6xl md:text-9xl font-display italic font-bold mb-4 leading-tight">
+              QLF BARBER
             </h1>
+            <span className="text-2xl md:text-4xl text-[#d4af37] font-display italic mb-8 block">chez amir</span>
             <p className="text-lg md:text-xl text-white/60 mb-12 max-w-2xl mx-auto font-light tracking-wide">
-              Experience the pinnacle of male grooming at QLF Barber Shop. Where tradition meets modern precision.
+              Experience the pinnacle of male grooming at QLF Barber. Where tradition meets modern precision.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
@@ -246,7 +255,7 @@ export default function App() {
                   <div className="p-3 bg-white/5 rounded-none group-hover:bg-[#d4af37]/20 transition-colors">
                     <Scissors className="w-6 h-6 text-[#d4af37]" />
                   </div>
-                  <span className="text-3xl font-display font-bold text-[#d4af37]">${service.price}</span>
+                  <span className="text-3xl font-display font-bold text-[#d4af37]">{service.price} DZD</span>
                 </div>
                 <h3 className="text-2xl font-bold mb-4 uppercase tracking-tight">{service.name}</h3>
                 <p className="text-white/40 mb-8 flex-grow leading-relaxed">{service.description}</p>
@@ -311,10 +320,19 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            {[
+              'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&q=80&w=800',
+              'https://images.unsplash.com/photo-1621605815841-2dddb7a69e3d?auto=format&fit=crop&q=80&w=800',
+              'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80&w=800',
+              'https://images.unsplash.com/photo-1622286332303-0738643e8db4?auto=format&fit=crop&q=80&w=800',
+              'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&q=80&w=800',
+              'https://images.unsplash.com/photo-1532710093739-9470acff878f?auto=format&fit=crop&q=80&w=800',
+              'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&q=80&w=800',
+              'https://images.unsplash.com/photo-1512690199101-8d8eb8899578?auto=format&fit=crop&q=80&w=800'
+            ].map((url, i) => (
               <div key={i} className="aspect-square overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 cursor-pointer relative group">
                 <img 
-                  src={`https://picsum.photos/seed/gallery${i}/800/800`} 
+                  src={url} 
                   alt={`Gallery ${i}`} 
                   className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                   referrerPolicy="no-referrer"
@@ -342,7 +360,7 @@ export default function App() {
                 </div>
                 <div>
                   <h4 className="text-lg font-bold mb-2 uppercase tracking-widest">Location</h4>
-                  <p className="text-white/40 leading-relaxed">123 Grooming Street, Style District<br />New York, NY 10001</p>
+                  <p className="text-white/40 leading-relaxed">حي 500 مسكن، عمارة 12<br />الجزائر العاصمة</p>
                 </div>
               </div>
 
@@ -399,9 +417,12 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-center gap-2 mb-6">
             <Scissors className="w-6 h-6 text-[#d4af37]" />
-            <span className="text-xl font-bold tracking-tighter font-display uppercase italic">QLF BARBER</span>
+            <div className="flex flex-col items-center">
+              <span className="text-xl font-bold tracking-tighter font-display uppercase italic leading-none">QLF BARBER</span>
+              <span className="text-[8px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">chez amir</span>
+            </div>
           </div>
-          <p className="text-white/20 text-xs tracking-[0.3em] uppercase">© 2024 QLF BARBER SHOP. ALL RIGHTS RESERVED.</p>
+          <p className="text-white/20 text-xs tracking-[0.3em] uppercase">© 2024 QLF BARBER. ALL RIGHTS RESERVED.</p>
         </div>
       </footer>
 
@@ -451,31 +472,55 @@ export default function App() {
 
               {bookingStep === 1 && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                  <h3 className="text-3xl font-display italic font-bold mb-8">SELECT A SERVICE</h3>
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  <h3 className="text-3xl font-display italic font-bold mb-8">SELECT SERVICES</h3>
+                  <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
                     {SERVICES.map((service) => (
                       <button 
                         key={service.id}
                         onClick={() => {
-                          setBookingData(prev => ({ ...prev, serviceId: service.id }));
-                          setBookingStep(2);
+                          const isSelected = bookingData.serviceIds.includes(service.id);
+                          const newIds = isSelected 
+                            ? bookingData.serviceIds.filter(id => id !== service.id)
+                            : [...bookingData.serviceIds, service.id];
+                          
+                          setBookingData(prev => ({ ...prev, serviceIds: newIds }));
+                          setSelectedServices(SERVICES.filter(s => newIds.includes(s.id)));
                         }}
                         className={cn(
                           "w-full p-6 border flex items-center justify-between transition-all group",
-                          bookingData.serviceId === service.id 
+                          bookingData.serviceIds.includes(service.id) 
                             ? "bg-[#d4af37] border-[#d4af37] text-black" 
                             : "bg-white/5 border-white/10 hover:border-white/30"
                         )}
                       >
                         <div className="text-left">
                           <div className="font-bold uppercase tracking-widest text-sm mb-1">{service.name}</div>
-                          <div className={cn("text-xs", bookingData.serviceId === service.id ? "text-black/60" : "text-white/40")}>
-                            {service.duration} MIN • ${service.price}
+                          <div className={cn("text-xs", bookingData.serviceIds.includes(service.id) ? "text-black/60" : "text-white/40")}>
+                            {service.duration} MIN • {service.price} DZD
                           </div>
                         </div>
-                        <ChevronRight className={cn("w-5 h-5", bookingData.serviceId === service.id ? "text-black" : "text-white/20")} />
+                        <div className={cn(
+                          "w-6 h-6 border flex items-center justify-center transition-colors",
+                          bookingData.serviceIds.includes(service.id) ? "border-black bg-black/10" : "border-white/20"
+                        )}>
+                          {bookingData.serviceIds.includes(service.id) && <CheckCircle2 className="w-4 h-4 text-black" />}
+                        </div>
                       </button>
                     ))}
+                  </div>
+                  
+                  <div className="mt-8 pt-8 border-t border-white/10 flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] font-bold tracking-widest text-white/20 uppercase mb-1">Total Price</div>
+                      <div className="text-2xl font-display font-bold text-[#d4af37]">{totalPrice} DZD</div>
+                    </div>
+                    <button 
+                      disabled={bookingData.serviceIds.length === 0}
+                      onClick={() => setBookingStep(2)}
+                      className="px-8 py-4 bg-[#d4af37] text-black font-bold uppercase tracking-widest hover:bg-[#b8962d] transition-colors disabled:opacity-50"
+                    >
+                      NEXT STEP
+                    </button>
                   </div>
                 </motion.div>
               )}
@@ -526,19 +571,21 @@ export default function App() {
                       <input 
                         type="text" 
                         required
+                        placeholder="الاسم الكامل"
                         className="w-full bg-white/5 border border-white/10 px-4 py-3 focus:border-[#d4af37] outline-none text-white"
                         value={bookingData.customerName}
                         onChange={(e) => setBookingData(prev => ({ ...prev, customerName: e.target.value }))}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold tracking-widest text-white/40 uppercase">Email Address</label>
+                      <label className="text-xs font-bold tracking-widest text-white/40 uppercase">Phone Number</label>
                       <input 
-                        type="email" 
+                        type="tel" 
                         required
+                        placeholder="رقم الهاتف"
                         className="w-full bg-white/5 border border-white/10 px-4 py-3 focus:border-[#d4af37] outline-none text-white"
-                        value={bookingData.customerEmail}
-                        onChange={(e) => setBookingData(prev => ({ ...prev, customerEmail: e.target.value }))}
+                        value={bookingData.customerPhone}
+                        onChange={(e) => setBookingData(prev => ({ ...prev, customerPhone: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -575,7 +622,7 @@ export default function App() {
                   
                   <button 
                     onClick={confirmBooking}
-                    disabled={!bookingData.date || !bookingData.time || !bookingData.customerName || !bookingData.customerEmail || isSubmitting}
+                    disabled={!bookingData.date || !bookingData.time || !bookingData.customerName || !bookingData.customerPhone || isSubmitting}
                     className="w-full mt-12 py-5 bg-[#d4af37] text-black font-bold uppercase tracking-widest hover:bg-[#b8962d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? (
@@ -605,13 +652,17 @@ export default function App() {
                   </div>
                   <h3 className="text-4xl font-display italic font-bold mb-4 uppercase">BOOKING CONFIRMED!</h3>
                   <p className="text-white/40 mb-12 max-w-sm mx-auto leading-relaxed">
-                    We've sent a confirmation email to your address. We look forward to seeing you at QLF Barber Shop.
+                    لقد تم استلام طلب الحجز الخاص بك. سنتصل بك قريباً لتأكيد الموعد. شكراً لثقتك في QLF Barber.
                   </p>
                   <div className="bg-white/5 border border-white/10 p-6 text-left mb-12">
                     <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="col-span-2">
+                        <div className="text-[10px] font-bold tracking-widest text-white/20 uppercase mb-1">Services</div>
+                        <div className="font-bold uppercase text-[#d4af37]">{selectedServices.map(s => s.name).join(', ')}</div>
+                      </div>
                       <div>
-                        <div className="text-[10px] font-bold tracking-widest text-white/20 uppercase mb-1">Service</div>
-                        <div className="font-bold uppercase">{SERVICES.find(s => s.id === bookingData.serviceId)?.name}</div>
+                        <div className="text-[10px] font-bold tracking-widest text-white/20 uppercase mb-1">Total Price</div>
+                        <div className="font-bold uppercase">{totalPrice} DZD</div>
                       </div>
                       <div>
                         <div className="text-[10px] font-bold tracking-widest text-white/20 uppercase mb-1">Barber</div>
