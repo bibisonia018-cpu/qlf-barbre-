@@ -114,7 +114,9 @@ export default function App() {
             <Scissors className="w-8 h-8 text-[#d4af37]" />
             <div className="flex flex-col">
               <span className="text-2xl font-bold tracking-tighter font-display uppercase italic leading-none">QLF BARBER</span>
-              <span className="text-[10px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">chez amir</span>
+              <span className="text-[10px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">
+                chez <a href="https://www.facebook.com/share/1HeectyrMW/" target="_blank" rel="noopener noreferrer" className="hover:underline">amir</a>
+              </span>
             </div>
           </div>
 
@@ -192,7 +194,9 @@ export default function App() {
             <h1 className="text-6xl md:text-9xl font-display italic font-bold mb-4 leading-tight">
               QLF BARBER
             </h1>
-            <span className="text-2xl md:text-4xl text-[#d4af37] font-display italic mb-8 block">chez amir</span>
+            <span className="text-2xl md:text-4xl text-[#d4af37] font-display italic mb-8 block">
+              chez <a href="https://www.facebook.com/share/1HeectyrMW/" target="_blank" rel="noopener noreferrer" className="hover:underline">amir</a>
+            </span>
             <p className="text-lg md:text-xl text-white/60 mb-12 max-w-2xl mx-auto font-light tracking-wide">
               Experience the pinnacle of male grooming at QLF Barber. Where tradition meets modern precision.
             </p>
@@ -419,10 +423,14 @@ export default function App() {
             <Scissors className="w-6 h-6 text-[#d4af37]" />
             <div className="flex flex-col items-center">
               <span className="text-xl font-bold tracking-tighter font-display uppercase italic leading-none">QLF BARBER</span>
-              <span className="text-[8px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">chez amir</span>
+              <span className="text-[8px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">
+                chez <a href="https://www.facebook.com/share/1HeectyrMW/" target="_blank" rel="noopener noreferrer" className="hover:underline">amir</a>
+              </span>
             </div>
           </div>
-          <p className="text-white/20 text-xs tracking-[0.3em] uppercase">© 2024 QLF BARBER. ALL RIGHTS RESERVED.</p>
+          <p className="text-white/20 text-xs tracking-[0.3em] uppercase">
+            engineered by <a href="https://www.facebook.com/abd.elmoulmene" target="_blank" rel="noopener noreferrer" className="hover:text-[#d4af37] transition-colors">mimoun aissaoui</a>
+          </p>
         </div>
       </footer>
 
