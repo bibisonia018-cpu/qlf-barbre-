@@ -40,10 +40,10 @@ export default function App() {
       const isPreview = window.location.hostname.includes('run.app');
       const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '3000';
       
-      // In APK, hostname is localhost but port is not 3000
+      // Use Dev URL as primary for testing
       const baseUrl = (isPreview || isLocalDev) 
         ? '' 
-        : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+        : 'https://ais-dev-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
       
       try {
         const res = await fetch(`${baseUrl}/api/health`, { mode: 'cors' });
@@ -53,7 +53,8 @@ export default function App() {
         } else {
           setBackendStatus({ ok: false, msg: `Error ${res.status}` });
         }
-      } catch (e) {
+      } catch (e: any) {
+        console.error("Health check failed:", e);
         setBackendStatus({ ok: false, msg: "Offline" });
       }
     };
@@ -76,20 +77,22 @@ export default function App() {
 
   const confirmBooking = async () => {
     setIsSubmitting(true);
+    const isPreview = window.location.hostname.includes('run.app');
+    const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '3000';
+    
+    const baseUrl = (isPreview || isLocalDev) 
+      ? '' 
+      : 'https://ais-dev-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+
+    const targetUrl = `${baseUrl}/api/book`;
+
     try {
       const selectedServiceNames = selectedServices.map(s => s.name).join(', ');
       const barberName = BARBERS.find(b => b.id === bookingData.barberId)?.name;
       
-      const isPreview = window.location.hostname.includes('run.app');
-      const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '3000';
-      
-      const baseUrl = (isPreview || isLocalDev) 
-        ? '' 
-        : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+      console.log("Booking attempt to:", targetUrl);
 
-      console.log("Booking attempt:", { baseUrl, hostname: window.location.hostname, port: window.location.port });
-
-      const response = await fetch(`${baseUrl}/api/book`, {
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -111,11 +114,11 @@ export default function App() {
         setBookingStep(4);
       } else {
         const errorData = await response.json().catch(() => ({ error: "Could not read server error" }));
-        alert(`Booking Failed (${response.status}):\n${errorData.error || "Unknown error"}\n\nCheck if the app is "Shared" in AI Studio.`);
+        alert(`Booking Failed (${response.status}):\n${errorData.error || "Unknown error"}\n\nURL: ${targetUrl}`);
       }
     } catch (error: any) {
       console.error("Booking connection error:", error);
-      alert(`Connection Error!\n\nMessage: ${error.message}\n\n1. Check your internet.\n2. Ensure AI Studio tab is OPEN.\n3. Ensure app is "Shared".`);
+      alert(`Connection Error!\n\nMessage: ${error.message}\nURL: ${targetUrl}\n\n1. Ensure AI Studio tab is OPEN.\n2. Ensure app is "Shared" (Anyone with link).\n3. Check your internet.`);
     } finally {
       setIsSubmitting(false);
     }
