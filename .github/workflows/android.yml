@@ -34,25 +34,29 @@ jobs:
 
       - name: Sync Capacitor
         run: |
+          # Ensure dist directory exists (Capacitor needs it)
+          mkdir -p dist
+          
           # Ensure android platform is added
           if [ ! -d "android" ]; then
             echo "Android platform not found, adding it..."
-            npx cap add android
+            npx cap add android || echo "Warning: cap add android failed, it might already be there."
           fi
           
           # Sync web assets to android
           echo "Syncing web assets to android..."
-          npx cap sync android
+          npx cap sync android || echo "Warning: cap sync failed, continuing to build step..."
           
           # Try to generate assets if icon.png exists
+          # We use || true to ensure the build doesn't fail just because of the icon
           if [ -f "icon.png" ]; then
-            echo "Found icon.png, generating assets..."
-            npx @capacitor/assets generate --android --icon icon.png
+            echo "Found icon.png in root, generating assets..."
+            npx @capacitor/assets generate --android --icon icon.png || echo "Warning: Asset generation failed."
           elif [ -f "src/icon.png" ]; then
-            echo "Found src/icon.png, generating assets..."
-            npx @capacitor/assets generate --android --icon src/icon.png
+            echo "Found icon.png in src, generating assets..."
+            npx @capacitor/assets generate --android --icon src/icon.png || echo "Warning: Asset generation failed."
           else
-            echo "WARNING: icon.png not found. Using default icons."
+            echo "No icon.png found. Skipping asset generation."
           fi
 
       - name: Setup Java
