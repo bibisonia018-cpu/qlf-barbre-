@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI } from "@google/genai";
 import { 
   Scissors, 
   Clock, 
@@ -34,53 +33,6 @@ export default function App() {
     customerPhone: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [generatedBg, setGeneratedBg] = useState<string | null>(null);
-
-  useEffect(() => {
-    const generateBackground = async () => {
-      try {
-        // Check if we already have a saved background
-        const savedBg = localStorage.getItem('qlf_barber_bg');
-        if (savedBg) {
-          setGeneratedBg(savedBg);
-          return;
-        }
-
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-        
-        // Using the user's provided image as a reference for the generation
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: {
-            parts: [
-              {
-                text: "Create a high-resolution, premium barber shop background based on this logo. The logo features a stylized profile of a man with a groomed beard and hair in golden tones. Below him are crossed scissors and a straight razor. The text 'QLF' is in a bold, 3D metallic gold font. The background should be a sophisticated, blurred barber shop interior with dark wood and warm, cinematic lighting. Maintain the exact luxury aesthetic and color palette of gold and black.",
-              },
-            ],
-          },
-          config: {
-            imageConfig: {
-              aspectRatio: "9:16",
-            },
-          },
-        });
-
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-          if (part.inlineData) {
-            const base64Data = `data:image/png;base64,${part.inlineData.data}`;
-            setGeneratedBg(base64Data);
-            // Save to localStorage so it never generates again
-            localStorage.setItem('qlf_barber_bg', base64Data);
-            break;
-          }
-        }
-      } catch (error) {
-        console.error("Error generating background:", error);
-      }
-    };
-
-    generateBackground();
-  }, []);
 
   const handleBookNow = (service?: Service) => {
     if (service) {
