@@ -30,23 +30,26 @@ jobs:
 
       - name: Sync Capacitor
         run: |
-          npx cap sync android || (npx cap add android && npx cap sync android)
+          # Ensure android platform is added
+          if [ ! -d "android" ]; then
+            echo "Android platform not found, adding it..."
+            npx cap add android
+          fi
           
-          # Search for icon.png if it's not in the root
+          # Sync web assets to android
+          npx cap sync android
+          
+          # Try to generate assets if icon.png exists
           ICON_PATH=$(find . -name "icon.png" | head -n 1)
-          
           if [ -n "$ICON_PATH" ]; then
             echo "Found icon at $ICON_PATH, generating assets..."
             npm install -g @capacitor/assets
-            
             # Delete default icons to force replacement
             rm -rf android/app/src/main/res/mipmap-*
-            
             # Generate new icons
             capacitor-assets generate --android --icon "$ICON_PATH"
           else
-            echo "ERROR: icon.png not found in the repository!"
-            exit 1
+            echo "WARNING: icon.png not found. Using default Capacitor icons."
           fi
 
       - name: Setup Java

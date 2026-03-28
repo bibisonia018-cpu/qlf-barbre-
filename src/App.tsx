@@ -54,39 +54,17 @@ export default function App() {
       const selectedServiceNames = selectedServices.map(s => s.name).join(', ');
       const barberName = BARBERS.find(b => b.id === bookingData.barberId)?.name;
       
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = process.env.TELEGRAM_CHAT_ID;
-
-      if (!botToken || !chatId) {
-        throw new Error("Telegram configuration missing in the app build.");
-      }
-
-      const escapeHTML = (text: any) => {
-        const str = text ? String(text) : 'N/A';
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      };
-
-      const message = `
-💈 <b>New Booking - QLF Barber</b>
-
-👤 <b>Customer:</b> ${escapeHTML(bookingData.customerName)}
-📞 <b>Phone:</b> ${escapeHTML(bookingData.customerPhone)}
-✂️ <b>Services:</b> ${escapeHTML(selectedServiceNames)}
-💰 <b>Total:</b> ${totalPrice} DZD
-💈 <b>Barber:</b> ${escapeHTML(barberName)}
-📅 <b>Date:</b> ${escapeHTML(bookingData.date)}
-🕒 <b>Time:</b> ${escapeHTML(bookingData.time)}
-
-<i>Sent directly from QLF Barber App</i>
-      `;
-
-      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      const response = await fetch('/api/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'HTML'
+          service: selectedServiceNames,
+          barber: barberName,
+          date: bookingData.date,
+          time: bookingData.time,
+          customerName: bookingData.customerName,
+          customerPhone: bookingData.customerPhone,
+          totalPrice: totalPrice
         })
       });
 
@@ -94,7 +72,7 @@ export default function App() {
         setBookingStep(4);
       } else {
         const errorData = await response.json();
-        alert(`Telegram Error: ${errorData.description || "Unknown error"}`);
+        alert(`Booking Error: ${errorData.error || "Unknown error"}`);
       }
     } catch (error: any) {
       console.error("Booking error:", error);

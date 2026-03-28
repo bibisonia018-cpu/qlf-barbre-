@@ -5,7 +5,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { service, barber, date, time, customerName, customerEmail } = req.body;
+  const { service, barber, date, time, customerName, customerPhone, totalPrice } = req.body;
   
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
@@ -24,11 +24,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
 
   const message = `
-🆕 <b>New Booking at QLF Barber Shop</b>
+💈 <b>New Booking - QLF Barber</b>
 
 👤 <b>Customer:</b> ${escapeHTML(customerName)}
-📧 <b>Email:</b> ${escapeHTML(customerEmail)}
-✂️ <b>Service:</b> ${escapeHTML(service)}
+📞 <b>Phone:</b> ${escapeHTML(customerPhone)}
+✂️ <b>Services:</b> ${escapeHTML(service)}
+💰 <b>Total:</b> ${totalPrice} DZD
 💈 <b>Barber:</b> ${escapeHTML(barber)}
 📅 <b>Date:</b> ${escapeHTML(date)}
 🕒 <b>Time:</b> ${escapeHTML(time)}
