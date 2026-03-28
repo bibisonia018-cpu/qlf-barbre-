@@ -31,11 +31,22 @@ jobs:
       - name: Sync Capacitor
         run: |
           npx cap sync android || (npx cap add android && npx cap sync android)
-          if [ -f "icon.png" ]; then
-            # Install assets tool globally to ensure it works
+          
+          # Search for icon.png if it's not in the root
+          ICON_PATH=$(find . -name "icon.png" | head -n 1)
+          
+          if [ -n "$ICON_PATH" ]; then
+            echo "Found icon at $ICON_PATH, generating assets..."
             npm install -g @capacitor/assets
-            # Generate icons and splash screens (using the same icon if splash is missing)
-            capacitor-assets generate --android --icon icon.png
+            
+            # Delete default icons to force replacement
+            rm -rf android/app/src/main/res/mipmap-*
+            
+            # Generate new icons
+            capacitor-assets generate --android --icon "$ICON_PATH"
+          else
+            echo "ERROR: icon.png not found in the repository!"
+            exit 1
           fi
 
       - name: Setup Java
