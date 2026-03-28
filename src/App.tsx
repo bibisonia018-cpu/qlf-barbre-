@@ -33,33 +33,6 @@ export default function App() {
     customerPhone: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [backendStatus, setBackendStatus] = useState<{ok: boolean, msg: string} | null>(null);
-
-  useEffect(() => {
-    const checkBackend = async () => {
-      const isPreview = window.location.hostname.includes('run.app');
-      const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '3000';
-      
-      // Use Shared App URL for APK/External access
-      const baseUrl = (isPreview || isLocalDev) 
-        ? '' 
-        : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
-      
-      try {
-        const res = await fetch(`${baseUrl}/api/health`, { mode: 'cors' });
-        if (res.ok) {
-          const data = await res.json();
-          setBackendStatus({ ok: true, msg: data.telegramConfigured ? "Connected" : "Config Missing" });
-        } else {
-          setBackendStatus({ ok: false, msg: `Error ${res.status}` });
-        }
-      } catch (e: any) {
-        console.error("Health check failed:", e);
-        setBackendStatus({ ok: false, msg: "Offline" });
-      }
-    };
-    checkBackend();
-  }, []);
 
   const handleBookNow = (service?: Service) => {
     if (service) {
@@ -77,29 +50,17 @@ export default function App() {
 
   const confirmBooking = async () => {
     setIsSubmitting(true);
-    const isPreview = window.location.hostname.includes('run.app');
-    const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '3000';
-    
-    // Use Shared App URL for APK/External access
-    const baseUrl = (isPreview || isLocalDev) 
-      ? '' 
-      : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
-
-    const targetUrl = `${baseUrl}/api/book`;
-
     try {
       const selectedServiceNames = selectedServices.map(s => s.name).join(', ');
       const barberName = BARBERS.find(b => b.id === bookingData.barberId)?.name;
       
-      console.log("Booking attempt to:", targetUrl);
+      // Use absolute URL for the APK to reach the backend
+      const isWebPreview = window.location.hostname.includes('run.app');
+      const baseUrl = isWebPreview ? '' : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
 
-      const response = await fetch(targetUrl, {
+      const response = await fetch(`${baseUrl}/api/book`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           service: selectedServiceNames,
           barber: barberName,
@@ -114,12 +75,11 @@ export default function App() {
       if (response.ok) {
         setBookingStep(4);
       } else {
-        const errorData = await response.json().catch(() => ({ error: "Could not read server error" }));
-        alert(`Booking Failed (${response.status}):\n${errorData.error || "Unknown error"}\n\nURL: ${targetUrl}`);
+        const errorData = await response.json().catch(() => ({ error: "Server Error" }));
+        alert(`خطأ في الحجز: ${errorData.error || "حاول مرة أخرى"}`);
       }
     } catch (error: any) {
-      console.error("Booking connection error:", error);
-      alert(`Connection Error!\n\nMessage: ${error.message}\nURL: ${targetUrl}\n\n⚠️ IMPORTANT: You MUST click "Share" -> "Anyone with the link" in AI Studio for the APK to work.`);
+      alert("تعذر الاتصال بالسيرفر. تأكد من أنك قمت بـ Share للتطبيق في AI Studio.");
     } finally {
       setIsSubmitting(false);
     }
@@ -135,17 +95,9 @@ export default function App() {
             <Scissors className="w-8 h-8 text-[#d4af37]" />
             <div className="flex flex-col">
               <span className="text-2xl font-bold tracking-tighter font-display uppercase italic leading-none">QLF BARBER</span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">
-                  chez <a href="https://www.facebook.com/share/1HeectyrMW/" target="_blank" rel="noopener noreferrer" className="hover:underline">amir</a>
-                </span>
-                {backendStatus && (
-                  <div className="flex items-center gap-1">
-                    <div className={cn("w-1.5 h-1.5 rounded-full", backendStatus.ok ? "bg-green-500" : "bg-red-500")} />
-                    <span className="text-[8px] uppercase tracking-widest text-white/40">{backendStatus.msg}</span>
-                  </div>
-                )}
-              </div>
+              <span className="text-[10px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">
+                chez <a href="https://www.facebook.com/share/1HeectyrMW/" target="_blank" rel="noopener noreferrer" className="hover:underline">amir</a>
+              </span>
             </div>
           </div>
 
