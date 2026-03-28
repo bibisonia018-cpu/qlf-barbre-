@@ -12,13 +12,28 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(cors());
+  app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
   app.use(express.json());
+
+  // Health check for Telegram config
+  app.get("/api/health", (req, res) => {
+    const hasToken = !!process.env.TELEGRAM_BOT_TOKEN;
+    const hasChatId = !!process.env.TELEGRAM_CHAT_ID;
+    res.json({ 
+      status: "ok", 
+      telegramConfigured: hasToken && hasChatId,
+      env: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+  });
 
   // Use the same handler for local dev and production
   app.post("/api/book", async (req, res) => {
-    // Adapt Express req/res to Vercel handler format if needed, 
-    // but they are mostly compatible for this use case
+    console.log("Incoming booking request from:", req.headers.origin || 'Unknown Origin');
     return bookingHandler(req as any, res as any);
   });
 

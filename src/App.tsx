@@ -33,6 +33,32 @@ export default function App() {
     customerPhone: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<{ok: boolean, msg: string} | null>(null);
+
+  useEffect(() => {
+    const checkBackend = async () => {
+      const isPreview = window.location.hostname.includes('run.app');
+      const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '3000';
+      
+      // In APK, hostname is localhost but port is not 3000
+      const baseUrl = (isPreview || isLocalDev) 
+        ? '' 
+        : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+      
+      try {
+        const res = await fetch(`${baseUrl}/api/health`, { mode: 'cors' });
+        if (res.ok) {
+          const data = await res.json();
+          setBackendStatus({ ok: true, msg: data.telegramConfigured ? "Connected" : "Config Missing" });
+        } else {
+          setBackendStatus({ ok: false, msg: `Error ${res.status}` });
+        }
+      } catch (e) {
+        setBackendStatus({ ok: false, msg: "Offline" });
+      }
+    };
+    checkBackend();
+  }, []);
 
   const handleBookNow = (service?: Service) => {
     if (service) {
@@ -54,20 +80,22 @@ export default function App() {
       const selectedServiceNames = selectedServices.map(s => s.name).join(', ');
       const barberName = BARBERS.find(b => b.id === bookingData.barberId)?.name;
       
-      // Use absolute URL for the APK to reach the backend
-      // We detect if we are in the AI Studio preview or the APK
-      const isDevPreview = window.location.hostname.includes('run.app') || 
-                          (window.location.hostname === 'localhost' && window.location.port === '3000');
+      const isPreview = window.location.hostname.includes('run.app');
+      const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '3000';
       
-      const baseUrl = isDevPreview 
+      const baseUrl = (isPreview || isLocalDev) 
         ? '' 
-        : 'https://ais-dev-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+        : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
 
-      console.log("Booking attempt:", { baseUrl, isDevPreview, hostname: window.location.hostname });
+      console.log("Booking attempt:", { baseUrl, hostname: window.location.hostname, port: window.location.port });
 
       const response = await fetch(`${baseUrl}/api/book`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        mode: 'cors',
         body: JSON.stringify({
           service: selectedServiceNames,
           barber: barberName,
@@ -82,12 +110,12 @@ export default function App() {
       if (response.ok) {
         setBookingStep(4);
       } else {
-        const errorData = await response.json();
-        alert(`Booking Error: ${errorData.error || "Unknown error"}`);
+        const errorData = await response.json().catch(() => ({ error: "Could not read server error" }));
+        alert(`Booking Failed (${response.status}):\n${errorData.error || "Unknown error"}\n\nCheck if the app is "Shared" in AI Studio.`);
       }
     } catch (error: any) {
-      console.error("Booking error:", error);
-      alert(error.message || "An error occurred. Please check your connection.");
+      console.error("Booking connection error:", error);
+      alert(`Connection Error!\n\nMessage: ${error.message}\n\n1. Check your internet.\n2. Ensure AI Studio tab is OPEN.\n3. Ensure app is "Shared".`);
     } finally {
       setIsSubmitting(false);
     }
@@ -103,9 +131,17 @@ export default function App() {
             <Scissors className="w-8 h-8 text-[#d4af37]" />
             <div className="flex flex-col">
               <span className="text-2xl font-bold tracking-tighter font-display uppercase italic leading-none">QLF BARBER</span>
-              <span className="text-[10px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">
-                chez <a href="https://www.facebook.com/share/1HeectyrMW/" target="_blank" rel="noopener noreferrer" className="hover:underline">amir</a>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] tracking-[0.3em] uppercase text-[#d4af37] font-bold">
+                  chez <a href="https://www.facebook.com/share/1HeectyrMW/" target="_blank" rel="noopener noreferrer" className="hover:underline">amir</a>
+                </span>
+                {backendStatus && (
+                  <div className="flex items-center gap-1">
+                    <div className={cn("w-1.5 h-1.5 rounded-full", backendStatus.ok ? "bg-green-500" : "bg-red-500")} />
+                    <span className="text-[8px] uppercase tracking-widest text-white/40">{backendStatus.msg}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
