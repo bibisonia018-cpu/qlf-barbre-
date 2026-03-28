@@ -20,44 +20,13 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: |
-          npm install
-          # Debug: List files to see where icon.png is
-          echo "Listing files in root:"
-          ls -R . | grep -v "node_modules" | head -n 50
+        run: npm install
 
       - name: Build Web App
         run: npm run build
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || '8228356997:AAGUgyxDDopNrt73wBxnolJjfYjkdVCg6-E' }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || '5037250569' }}
 
       - name: Sync Capacitor
-        run: |
-          # Ensure dist directory exists (Capacitor needs it)
-          mkdir -p dist
-          
-          # Ensure android platform is added
-          if [ ! -d "android" ]; then
-            echo "Android platform not found, adding it..."
-            npx cap add android || echo "Warning: cap add android failed, it might already be there."
-          fi
-          
-          # Sync web assets to android
-          echo "Syncing web assets to android..."
-          npx cap sync android || echo "Warning: cap sync failed, continuing to build step..."
-          
-          # Try to generate assets if icon.png exists
-          # We use || true to ensure the build doesn't fail just because of the icon
-          if [ -f "icon.png" ]; then
-            echo "Found icon.png in root, generating assets..."
-            npx @capacitor/assets generate --android --icon icon.png || echo "Warning: Asset generation failed."
-          elif [ -f "src/icon.png" ]; then
-            echo "Found icon.png in src, generating assets..."
-            npx @capacitor/assets generate --android --icon src/icon.png || echo "Warning: Asset generation failed."
-          else
-            echo "No icon.png found. Skipping asset generation."
-          fi
+        run: npx cap sync android
 
       - name: Setup Java
         uses: actions/setup-java@v4
