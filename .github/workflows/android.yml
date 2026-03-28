@@ -20,7 +20,11 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm install
+          # Debug: List files to see where icon.png is
+          echo "Listing files in root:"
+          ls -R . | grep -v "node_modules" | head -n 50
 
       - name: Build Web App
         run: npm run build
@@ -37,19 +41,18 @@ jobs:
           fi
           
           # Sync web assets to android
+          echo "Syncing web assets to android..."
           npx cap sync android
           
           # Try to generate assets if icon.png exists
-          ICON_PATH=$(find . -name "icon.png" | head -n 1)
-          if [ -n "$ICON_PATH" ]; then
-            echo "Found icon at $ICON_PATH, generating assets..."
-            npm install -g @capacitor/assets
-            # Delete default icons to force replacement
-            rm -rf android/app/src/main/res/mipmap-*
-            # Generate new icons
-            capacitor-assets generate --android --icon "$ICON_PATH"
+          if [ -f "icon.png" ]; then
+            echo "Found icon.png, generating assets..."
+            npx @capacitor/assets generate --android --icon icon.png
+          elif [ -f "src/icon.png" ]; then
+            echo "Found src/icon.png, generating assets..."
+            npx @capacitor/assets generate --android --icon src/icon.png
           else
-            echo "WARNING: icon.png not found. Using default Capacitor icons."
+            echo "WARNING: icon.png not found. Using default icons."
           fi
 
       - name: Setup Java
