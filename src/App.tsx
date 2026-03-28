@@ -40,10 +40,10 @@ export default function App() {
       const isPreview = window.location.hostname.includes('run.app');
       const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '3000';
       
-      // Use Dev URL as primary for testing
+      // Use Shared App URL for APK/External access
       const baseUrl = (isPreview || isLocalDev) 
         ? '' 
-        : 'https://ais-dev-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+        : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
       
       try {
         const res = await fetch(`${baseUrl}/api/health`, { mode: 'cors' });
@@ -80,9 +80,10 @@ export default function App() {
     const isPreview = window.location.hostname.includes('run.app');
     const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '3000';
     
+    // Use Shared App URL for APK/External access
     const baseUrl = (isPreview || isLocalDev) 
       ? '' 
-      : 'https://ais-dev-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+      : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
 
     const targetUrl = `${baseUrl}/api/book`;
 
@@ -118,7 +119,7 @@ export default function App() {
       }
     } catch (error: any) {
       console.error("Booking connection error:", error);
-      alert(`Connection Error!\n\nMessage: ${error.message}\nURL: ${targetUrl}\n\n1. Ensure AI Studio tab is OPEN.\n2. Ensure app is "Shared" (Anyone with link).\n3. Check your internet.`);
+      alert(`Connection Error!\n\nMessage: ${error.message}\nURL: ${targetUrl}\n\n⚠️ IMPORTANT: You MUST click "Share" -> "Anyone with the link" in AI Studio for the APK to work.`);
     } finally {
       setIsSubmitting(false);
     }
