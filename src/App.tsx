@@ -56,6 +56,7 @@ export default function App() {
       
       // Use absolute URL for the APK to reach the backend
       const isWebPreview = window.location.hostname.includes('run.app');
+      // We use the Shared URL (ais-pre) because it's public and doesn't require Google login
       const baseUrl = isWebPreview ? '' : 'https://ais-pre-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
 
       const response = await fetch(`${baseUrl}/api/book`, {
@@ -79,7 +80,7 @@ export default function App() {
         alert(`خطأ في الحجز: ${errorData.error || "حاول مرة أخرى"}`);
       }
     } catch (error: any) {
-      alert("تعذر الاتصال بالسيرفر. تأكد من أنك قمت بـ Share للتطبيق في AI Studio.");
+      alert("تعذر الاتصال بالسيرفر. تأكد من أنك قمت بـ Share للتطبيق في AI Studio واختيار 'Anyone with the link'.");
     } finally {
       setIsSubmitting(false);
     }
