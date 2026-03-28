@@ -30,9 +30,7 @@ jobs:
 
       - name: Sync Capacitor
         run: |
-          mkdir -p dist
-          npx cap add android || true
-          npx cap sync android
+          npx cap sync android || (npx cap add android && npx cap sync android)
 
       - name: Setup Java
         uses: actions/setup-java@v4
