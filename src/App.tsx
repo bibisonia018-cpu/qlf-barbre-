@@ -55,9 +55,15 @@ export default function App() {
       const barberName = BARBERS.find(b => b.id === bookingData.barberId)?.name;
       
       // Use absolute URL for the APK to reach the backend
-      const baseUrl = window.location.hostname === 'localhost' && window.location.port === '3000' 
+      // We detect if we are in the AI Studio preview or the APK
+      const isDevPreview = window.location.hostname.includes('run.app') || 
+                          (window.location.hostname === 'localhost' && window.location.port === '3000');
+      
+      const baseUrl = isDevPreview 
         ? '' 
         : 'https://ais-dev-o5elf62d6nnnj6ood3hpec-203849806605.europe-west2.run.app';
+
+      console.log("Booking attempt:", { baseUrl, isDevPreview, hostname: window.location.hostname });
 
       const response = await fetch(`${baseUrl}/api/book`, {
         method: 'POST',
